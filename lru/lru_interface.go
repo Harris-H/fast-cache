@@ -39,4 +39,6 @@ type Cache[K comparable, V any] interface {
 
 	// Resize Resizes cache, returning number evicted
 	Resize(int) (evicted int, err error)
+
+	MoveToFront(key K) (ok bool)
 }
