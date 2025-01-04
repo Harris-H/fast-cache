@@ -133,6 +133,16 @@ func (c *LRU[K, V]) Remove(key K) (present bool) {
 	return false
 }
 
+func (c *LRU[K, V]) RemoveMany(keys []K) (removed int) {
+	for _, key := range keys {
+		if ent, ok := c.items[key]; ok {
+			c.removeElement(ent)
+			removed++
+		}
+	}
+	return removed
+}
+
 // RemoveOldest removes the oldest item from the cache.
 func (c *LRU[K, V]) RemoveOldest() (key K, value V, ok bool) {
 	if ent := c.evictList.Back(); ent != nil {
@@ -221,4 +231,67 @@ func (c *LRU[K, V]) removeElement(e *internal.Entry[K, V]) {
 	if c.onEvict != nil {
 		c.onEvict(e.Key, e.Value)
 	}
+}
+
+// Keys returns a slice of the keys in the cache.
+// The frequently used keys are first in the returned slice.
+func (c *TwoQueueCache[K, V]) Keys(reverse bool) []K {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	k1 := c.frequent.Keys(reverse)
+	k2 := c.recent.Keys(reverse)
+	return append(k1, k2...)
+}
+
+// Values returns a slice of the values in the cache.
+// The frequently used values are first in the returned slice.
+func (c *TwoQueueCache[K, V]) Values(reverse bool) []V {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	v1 := c.frequent.Values(reverse)
+	v2 := c.recent.Values(reverse)
+	return append(v1, v2...)
+}
+
+// Remove removes the provided key from the cache.
+func (c *TwoQueueCache[K, V]) Remove(key K) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	if c.frequent.Remove(key) {
+		return
+	}
+	if c.recent.Remove(key) {
+		return
+	}
+	if c.recentEvict.Remove(key) {
+		return
+	}
+}
+
+// Purge is used to completely clear the cache.
+func (c *TwoQueueCache[K, V]) Purge() {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	c.recent.Purge()
+	c.frequent.Purge()
+	c.recentEvict.Purge()
+}
+
+// Contains is used to check if the cache contains a key
+// without updating recency or frequency.
+func (c *TwoQueueCache[K, V]) Contains(key K) bool {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	return c.frequent.Contains(key) || c.recent.Contains(key)
+}
+
+// Peek is used to inspect the cache value of a key
+// without updating recency or frequency.
+func (c *TwoQueueCache[K, V]) Peek(key K) (value V, ok bool) {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	if val, ok := c.frequent.Peek(key); ok {
+		return val, ok
+	}
+	return c.recent.Peek(key)
 }
