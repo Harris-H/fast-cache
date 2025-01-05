@@ -1,14 +1,16 @@
 # fast-cache
 
-该项目基于[golang-lru](https://github.com/hashicorp/golang-lru)二次开发，是其简化版，并进行了一些修改。
+该项目基于[golang-lru](https://github.com/hashicorp/golang-lru)和[go-generics-cache](https://github.com/Code-Hex/go-generics-cache)二次开发，是其简化版，并进行了一些修改。
 
 
 
 ## 1 特性
 
 - **支持LRU**
+- **支持LFU**
 - **支持改进的2Q**
 - **支持LRU-K**
+- **支持回调函数EvictCallback**
 - 支持缓存由新到旧遍历Key、Value(由reverse参数驱动)
 - 对Resize()函数添加错误处理(当size为负数报错)
 - 新增AddMany方法，可以一次性添加多个(key,value)对，提高性能。
@@ -53,6 +55,50 @@ func main() {
 		keysOrderedByNew 3:  [6 3 5 4 2]
 	*/
 }
+```
+
+### LFU
+
+```go
+func TestSet(t *testing.T) {
+	// set size is 1
+	cache, err := NewLFU[string, int](1, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	cache.Add("foo", 1)
+	if got := cache.Len(); got != 1 {
+		t.Fatalf("invalid length: %d", got)
+	}
+	if got, ok := cache.Get("foo"); got != 1 || !ok {
+		t.Fatalf("invalid value got %d, cachehit %v", got, ok)
+	}
+
+	// if over the size
+	cache.Add("bar", 2)
+	if got := cache.Len(); got != 1 {
+		t.Fatalf("invalid length: %d", got)
+	}
+	bar, ok := cache.Get("bar")
+	if bar != 2 || !ok {
+		t.Fatalf("invalid value bar %d, cachehit %v", bar, ok)
+	}
+
+	// checks deleted oldest
+	if _, ok := cache.Get("foo"); ok {
+		t.Fatalf("invalid delete oldest value foo %v", ok)
+	}
+
+	// valid: if over the cap but same key
+	cache.Add("bar", 100)
+	if got := cache.Len(); got != 1 {
+		t.Fatalf("invalid length: %d", got)
+	}
+	bar, ok = cache.Get("bar")
+	if bar != 100 || !ok {
+		t.Fatalf("invalid replacing value bar %d, cachehit %v", bar, ok)
+	}
+}    
 ```
 
 ### 2Q
@@ -131,6 +177,12 @@ func TestLRUK(t *testing.T) {
 
 ## 3 数据结构
 
+### LFU
+
+<img src=".\assets\lfu.png" alt="lfu" style="zoom: 33%;" />
+
+ LFU（Least Frequently Used）算法根据数据的访问频率来决定缓存数据的替换。最少被访问的数据会被移除。
+
 ### LRU-K
 
 >LRU-K中的K代表最近使用的次数，因此LRU可以认为是LRU-1。LRU-K的主要目的是为了解决LRU算法“缓存污染”的问题，其核心思想是将“最近使用过1次”的判断标准扩展为“最近使用过K次”。
@@ -185,5 +237,4 @@ simple 2Q算法类似LRU-2，不同点在于2Q将LRU-2算法中的访问历史�
 
 ## 4 待完善
 
-- 支持lfu
 - 2q可获取当前Evict Buffer的数据
