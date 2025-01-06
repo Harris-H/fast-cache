@@ -6,6 +6,7 @@
 
 ## 1 特性
 
+- **支持FIFO**
 - **支持LRU**
 - **支持LFU**
 - **支持改进的2Q**
@@ -19,6 +20,40 @@
 
 
 ## 2 使用示例
+
+### FIFO
+
+```go
+func TestExampleNewCache(t *testing.T) {
+	c, err := NewFIFO[string, int](128, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	c.Add("a", 1)
+	c.Add("b", 2)
+	av, aok := c.Get("a")
+	bv, bok := c.Get("b")
+	cv, cok := c.Get("c")
+	fmt.Println(av, aok)
+	fmt.Println(bv, bok)
+	fmt.Println(cv, cok)
+	c.Remove("a")
+	_, aok2 := c.Get("a")
+	if !aok2 {
+		fmt.Println("key 'a' has been deleted")
+	}
+	// update
+	c.Add("b", 3)
+	newbv, _ := c.Get("b")
+	fmt.Println(newbv)
+	// Output:
+	// 1 true
+	// 2 true
+	// 0 false
+	// key 'a' has been deleted
+	// 3
+}
+```
 
 ### LRU
 
@@ -237,4 +272,5 @@ simple 2Q算法类似LRU-2，不同点在于2Q将LRU-2算法中的访问历史�
 
 ## 4 待完善
 
+- 支持Clock
 - 2q可获取当前Evict Buffer的数据

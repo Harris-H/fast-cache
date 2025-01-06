@@ -133,6 +133,12 @@ func (l *LruList[K, V]) PushFront(k K, v V) *Entry[K, V] {
 	return l.insertValue(k, v, time.Time{}, &l.dummy)
 }
 
+// PushBack inserts a new element e with value v at the back of list l and returns e.
+func (l *LruList[K, V]) PushBack(k K, v V) *Entry[K, V] {
+	l.lazyInit()
+	return l.insertValue(k, v, time.Time{}, l.dummy.prev)
+}
+
 // PushFrontExpirable inserts a new expirable element e with Value v at the front of list l and returns e.
 func (l *LruList[K, V]) PushFrontExpirable(k K, v V, expiresAt time.Time) *Entry[K, V] {
 	l.lazyInit()
