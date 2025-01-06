@@ -7,6 +7,7 @@
 ## 1 特性
 
 - **支持FIFO**
+- **支持GClock**
 - **支持LRU**
 - **支持LFU**
 - **支持改进的2Q**
@@ -55,6 +56,34 @@ func TestExampleNewCache(t *testing.T) {
 }
 ```
 
+### GClock
+
+```go
+func TestExampleNewCache(t *testing.T) {
+	c, err := NewClock[string, int](128, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	c.Add("a", 1)
+	c.Add("b", 2)
+	av, aok := c.Get("a")
+	bv, bok := c.Get("b")
+	cv, cok := c.Get("c")
+	fmt.Println(av, aok)
+	fmt.Println(bv, bok)
+	fmt.Println(cv, cok)
+	c.Delete("a")
+	_, aok2 := c.Get("a")
+	if !aok2 {
+		fmt.Println("key 'a' has been deleted")
+	}
+	// update
+	c.Add("b", 3)
+	newbv, _ := c.Get("b")
+	fmt.Println(newbv)
+}
+```
+
 ### LRU
 
 ```go
@@ -81,14 +110,6 @@ func main() {
 	l.Add(6, "Rust")
 	keysOrderedByNew = l.Keys(true)
 	fmt.Println("keysOrderedByNew 3: ", keysOrderedByNew)
-	/*
-		keys:  [1 2 3 4 5]
-		keysOrderedByNew 1:  [5 4 3 2 1]
-		key:  3  value:  Python
-		keysOrderedByNew 2:  [5 4 3 2 1]
-		Add (6,Rust):
-		keysOrderedByNew 3:  [6 3 5 4 2]
-	*/
 }
 ```
 
@@ -163,14 +184,6 @@ func Test2Q(t *testing.T) {
 	t.Logf("keysOrderedByNew 3: %v", keysOrderedByNew)
 	l.Remove(5)
 	t.Logf("keysOrderedByNew 4: %v", l.Keys(true))
-	/*
-	   keys: [1 2 3 4 5]
-	   keysOrderedByNew 1: [5 4 3 2 1]
-	   key: 3 value: Python
-	   keysOrderedByNew 2: [3 5 4 2 1]
-	   keysOrderedByNew 3: [3 6 5 4 2]
-	   keysOrderedByNew 4: [3 6 4 2]
-	*/
 }
 ```
 
@@ -217,6 +230,14 @@ func TestLRUK(t *testing.T) {
 <img src=".\assets\lfu.png" alt="lfu" style="zoom: 33%;" />
 
  LFU（Least Frequently Used）算法根据数据的访问频率来决定缓存数据的替换。最少被访问的数据会被移除。
+
+### GCLOCK
+
+朴素CLOCK：一圈页，一个指针指向某页，要替换某页时，看指向的那页的访问位是不是1，如果不是就将这页替换掉，如果是则置0，然后移到下一页继续看。
+
+本项目基于GLOCK算法：相对于Clock标志位采用的是二进制0和1表示，Gclock的标志位采用的是一个整数，意味着理论上可以一直增加到无穷大。
+
+给每页一个refcount，当hit的时候增加它的值，当指针扫过的时候减这个值，减到0就可以替换掉了。好处是可以保留更多的历史访问信息，更精准地把很少访问的页找出来。
 
 ### LRU-K
 
@@ -272,5 +293,5 @@ simple 2Q算法类似LRU-2，不同点在于2Q将LRU-2算法中的访问历史�
 
 ## 4 待完善
 
-- 支持Clock
+- 支持Clock-sweep、WSClock。
 - 2q可获取当前Evict Buffer的数据
