@@ -7,7 +7,8 @@ import (
 
 func TestSet(t *testing.T) {
 	// set size is 1
-	cache, err := NewClock[string, int](1, nil)
+	//cache, err := NewClock[string, int](1, nil)
+	cache, err := NewClockSweep[string, int](1, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -45,7 +46,8 @@ func TestSet(t *testing.T) {
 	}
 }
 func TestDelete(t *testing.T) {
-	cache, err := NewClock[string, int](1, nil)
+	//cache, err := NewClock[string, int](1, nil)
+	cache, err := NewClockSweep[string, int](1, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -69,7 +71,39 @@ func TestDelete(t *testing.T) {
 }
 
 func TestExampleNewCache(t *testing.T) {
-	c, err := NewClock[string, int](128, nil)
+	//c, err := NewClock[string, int](128, nil)
+	c, err := NewClockSweep[string, int](1, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	c.Add("a", 1)
+	c.Add("b", 2)
+	av, aok := c.Get("a")
+	bv, bok := c.Get("b")
+	cv, cok := c.Get("c")
+	fmt.Println(av, aok)
+	fmt.Println(bv, bok)
+	fmt.Println(cv, cok)
+	c.Delete("a")
+	_, aok2 := c.Get("a")
+	if !aok2 {
+		fmt.Println("key 'a' has been deleted")
+	}
+	// update
+	c.Add("b", 3)
+	newbv, _ := c.Get("b")
+	fmt.Println(newbv)
+	// Output:
+	// 1 true
+	// 2 true
+	// 0 false
+	// key 'a' has been deleted
+	// 3
+}
+
+func TestWSClock_Add(t *testing.T) {
+	//c, err := NewWSClock[string, int](128, nil)
+	c, err := NewWSClock[string, int](1, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

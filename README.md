@@ -7,7 +7,11 @@
 ## 1 特性
 
 - **支持FIFO**
-- **支持GClock**
+- 支持3种时钟算法
+  - **GClock**
+  - **Clock-Sweep(based on postgresql)**
+  - **WSClock(Working set clock)**
+
 - **支持LRU**
 - **支持LFU**
 - **支持改进的2Q**
@@ -238,6 +242,32 @@ func TestLRUK(t *testing.T) {
 本项目基于GLOCK算法：相对于Clock标志位采用的是二进制0和1表示，Gclock的标志位采用的是一个整数，意味着理论上可以一直增加到无穷大。
 
 给每页一个refcount，当hit的时候增加它的值，当指针扫过的时候减这个值，减到0就可以替换掉了。好处是可以保留更多的历史访问信息，更精准地把很少访问的页找出来。
+
+### Clock-Sweep
+
+![Clock-Sweep](.\assets\Clock-Sweep.png)
+
+- 1)：nextVictimBuffer 指向第一个描述符 （buffer_id 1）。但是，由于此描述符已固定(pinned)，因此会跳过此描述符。
+- 2)：nextVictimBuffer 指向第二个描述符 （buffer_id 2）。此描述符未固定(unpinned)，但其usage_count为 2。因此，usage_count 减少 1，并且 nextVictimBuffer 前进到第三个候选项。
+-  nextVictimBuffer 指向第三个描述符 （buffer_id 3）。此描述符未固定，其usage_count为 0。因此，这是这一轮选择的结果。
+
+>每次从上次位置开始轮询，然后检查buffer 的引用次数 refcount 和访问次数 usagecount。
+>
+>1. 如果 refcount，usagecount 都为零，那么直接返回。
+>2. 如果 refcount 为零，usagecount 不为零，那么将其usagecount 减1，遍历下一个buffer。
+>3. 如果 refcount 不为零，则遍历下一个。
+>
+>clock sweep 算法是一个死循环算法，直到找出一个 refcount，usagecount 都为零的buffer。
+
+### WSClock(**Working set clock**)
+
+<img src=".\assets\wsclock.png" alt="wsclock" style="zoom:33%;" />
+
+当缓存已满，需要替换页面时，WSClock 算法会检查指针指向的页面:
+
+- 如果 R 位为 1:表示该页面在工作集中，将其 R 位重置为 0，然后指针移动到下一个页面。
+- 如果 R 位为 0:则需要进一步检查该页面的生存时间(age)。如果生存时间大于设定阈值$t$，则可以替换该页面，并将新页面插入;如果生存时间小于或等于$t$则继续查找下一个页面。
+- 如果循环一圈后仍未找到合适的替换对象，则替换第一个R位为0的页面。
 
 ### LRU-K
 
