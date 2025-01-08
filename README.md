@@ -7,7 +7,7 @@
 ## 1 特性
 
 - **支持FIFO**
-- 支持3种时钟算法
+- **支持3种时钟算法**
   - **GClock**
   - **Clock-Sweep(based on postgresql)**
   - **WSClock(Working set clock)**
@@ -245,7 +245,7 @@ func TestLRUK(t *testing.T) {
 
 ### Clock-Sweep
 
-![Clock-Sweep](.\assets\Clock-Sweep.png)
+<img src=".\assets\Clock-Sweep.png" alt="Clock-Sweep" style="zoom:50%;" />
 
 - 1)：nextVictimBuffer 指向第一个描述符 （buffer_id 1）。但是，由于此描述符已固定(pinned)，因此会跳过此描述符。
 - 2)：nextVictimBuffer 指向第二个描述符 （buffer_id 2）。此描述符未固定(unpinned)，但其usage_count为 2。因此，usage_count 减少 1，并且 nextVictimBuffer 前进到第三个候选项。
@@ -323,5 +323,5 @@ simple 2Q算法类似LRU-2，不同点在于2Q将LRU-2算法中的访问历史�
 
 ## 4 待完善
 
-- 支持Clock-sweep、WSClock。
 - 2q可获取当前Evict Buffer的数据
+- Benchmark测试
