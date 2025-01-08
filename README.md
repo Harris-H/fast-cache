@@ -261,7 +261,7 @@ func TestLRUK(t *testing.T) {
 
 ### WSClock(**Working set clock**)
 
-<img src=".\assets\wsclock.png" alt="wsclock" width="30%" />
+<img src=".\assets\wsclock.png" alt="wsclock" width="50%" />
 
 当缓存已满，需要替换页面时，WSClock 算法会检查指针指向的页面:
 
@@ -275,7 +275,7 @@ func TestLRUK(t *testing.T) {
 
 相比LRU，LRU-K需要多维护一个队列，用于记录所有缓存数据被访问的历史。只有当数据的访问次数达到K次的时候，才将数据放入缓存。当需要淘汰数据时，LRU-K会淘汰第K次访问时间距当前时间最大的数据。详细实现如下。
 
-<img src=".\assets\lruk.png" alt="lruk" width="30%" />
+<img src=".\assets\lruk.png" alt="lruk" width="50%" />
 
 　(1). 数据第一次被访问，加入到访问历史列表；
 
@@ -295,7 +295,7 @@ func TestLRUK(t *testing.T) {
 
 simple 2Q算法类似LRU-2，不同点在于2Q将LRU-2算法中的访问历史队列（仅作记录不缓存数据）改为FIFO缓存队列。即，simple 2Q算法有两个缓存队列，一个FIFO队列，一个LRU队列。
 
-<img src=".\assets\2q.png" alt="2q" width="30%" />
+<img src=".\assets\2q.png" alt="2q" width="50%" />
 
 (1). 新访问的数据插入到FIFO队列；
 
